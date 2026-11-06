@@ -1,0 +1,45 @@
+{
+  "name": "@pcc/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:migrate": "dotenv -e ../../.env.local -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env.local -- prisma migrate deploy",
+    "db:seed": "node --env-file-if-exists=../../.env.local --experimental-strip-types prisma/seed.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "dotenv -v DATABASE_URL=postgresql://validate@localhost:5432/validate -- prisma validate",
+    "import:catalogue": "node --env-file-if-exists=../../.env.local dist/scripts/import-catalogue.js",
+    "test": "npm run build && node --env-file-if-exists=../../.env.local --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@pcc/shared": "1.0.0",
+    "@prisma/client": "^6.19.0",
+    "argon2": "^0.41.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "sharp": "^0.34.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/express": "^4.17.23",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.0.0",
+    "dotenv-cli": "^8.0.0",
+    "prisma": "^6.19.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.0.0"
+  }
+}

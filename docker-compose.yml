@@ -1,53 +1,23 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runner
-    image: ai-website-cloner:latest
-    container_name: ai-website-cloner
+  postgres:
+    image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "${PORT:-3000}:3000"
     environment:
-      - NODE_ENV=production
-      - NEXT_TELEMETRY_DISABLED=1
-    env_file:
-      - path: .env.local
-        required: false
-      - path: .env
-        required: false
+      POSTGRES_DB: pcc
+      POSTGRES_USER: ${POSTGRES_USER:-pcc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD dans .env.local}
+    ports:
+      - "${POSTGRES_PORT:-5438}:5432"
+    volumes:
+      - pcc-postgres-data:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/10-create-test-database.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d pcc"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
       start_period: 10s
 
-  dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    image: ai-website-cloner:dev
-    container_name: ai-website-cloner-dev
-    restart: unless-stopped
-    ports:
-      - "${DEV_PORT:-3001}:3000"
-    environment:
-      - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-    env_file:
-      - path: .env.local
-        required: false
-      - path: .env
-        required: false
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+volumes:
+  pcc-postgres-data:
+    name: pccomponentes-postgres-data

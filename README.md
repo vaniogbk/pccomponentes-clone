@@ -1,154 +1,96 @@
-<div align="center">
+# PcComponentes France — boutique de démonstration
 
-# AI Website Cloner Template
+Monorepo TypeScript strict pour le catalogue public, l'API boutique et la logique métier partagée.
 
-### Clone any website with one command
+> Les produits et photos servent à la démonstration. Les prix de l'interface portent la mention `[DÉMO]`. Aucun stock,
+> tarif de livraison, délai, coordonnées bancaires ou identité juridique n'est validé. Le paiement et les commandes restent désactivés.
 
-Give your AI coding agent a URL and watch it recreate the website as a clean Next.js app.
+## Architecture
 
-**Best results with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) + Opus 5.5. Also supports Codex, Cursor, and OpenCode.**
+- `apps/web` : storefront Next.js 16 (App Router), React 19 et Tailwind CSS.
+- `apps/api` : API Express 4, validation Zod, journaux Pino et schéma Prisma/PostgreSQL.
+- `packages/shared` : montants en centimes, panier, livraison, références de commande, SEPA, fichiers, pays, langues et schémas.
+- `apps/web/public/images/products` : originaux fournis et images WebP optimisées.
+- `docker` : création de la base locale `pcc_test`.
 
-[![Use this template](https://img.shields.io/badge/Use_this_template-Create_your_copy-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/JCodesMore/ai-website-cloner-template/generate) [![Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hrTSX5yTpB)
+Next.js reste en version 16 : le dépôt et son environnement utilisent déjà Next 16.3.5. La configuration suit les conventions
+Next.js 16 (`proxy.ts` si un proxy Next est ajouté).
 
-[Quick Start](#quick-start) · [Watch Demo](#demo) · [Supported Platforms](#supported-platforms)
+## Prérequis
 
-<a href="https://github.com/JCodesMore/ai-website-cloner-template/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a> <a href="https://github.com/JCodesMore/ai-website-cloner-template"><img src="https://img.shields.io/github/stars/JCodesMore/ai-website-cloner-template?style=flat" alt="Stars" /></a> <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JCodesMore/ai-website-cloner-template/badges/token-badge.json" alt="tokens" />
+- Node.js 24 LTS et npm.
+- Docker Desktop pour la base locale.
 
-  <a href="https://trendshift.io/repositories/24302?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-24302" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/24302" alt="JCodesMore%2Fai-website-cloner-template | Trendshift" width="250" height="55" /></a> <a href="https://www.star-history.com/jcodesmore/ai-website-cloner-template/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template&amp;theme=dark" /><source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template" /><img alt="Star History Global Rank" src="https://api.star-history.com/badge?repo=JCodesMore/ai-website-cloner-template" width="216" height="55" /></picture></a>
+## Démarrage local
 
-</div>
-
----
-
-## Demo
-
-[![Watch the demo](docs/design-references/comparison.png)](https://youtu.be/O669pVZ_qr0)
-
-> Click the image above to watch the full demo on YouTube.
-
-## Quick Start
-
-### 1. Set up your project
-
-**Recommended: ask your agent.** Paste this into Codex, Claude Code, or your coding agent:
-
-```text
-Set up https://github.com/JCodesMore/ai-website-cloner-template
-as a standalone project in a new folder on my computer.
-Ask me where to put it. Clone the repository, remove its origin remote,
-install dependencies, and run npm run check. Leave it ready for me
-to clone a website.
+```powershell
+Copy-Item .env.example .env.local
 ```
 
-**Or create your own GitHub repository:**
+Renseignez un mot de passe PostgreSQL local dans `.env.local` et une URL PostgreSQL locale pour `DATABASE_URL`. Les clés de
+signature, les coordonnées bancaires et les clés R2 restent vides tant que les services correspondants ne sont pas configurés.
 
-[![Use this template](https://img.shields.io/badge/Use_this_template-Create_your_copy-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/JCodesMore/ai-website-cloner-template/generate)
-
-Give it a name and click **Create repository**. Then give your agent the new repository's link and ask it to clone it onto your computer, install dependencies, and run `npm run check`.
-
-### 2. Clone a website
-
-Open the project in your agent with browser access enabled. In Claude Code or Cursor, run:
-
-```text
-/clone-website https://example.com
+```powershell
+npm ci
+npm run db:up
+npm run db:migrate
+npm run db:seed
+npm run dev
 ```
 
-Replace the URL with the website you want to recreate. Once it's built, ask your agent for any changes you want.
+Le storefront est servi sur `http://localhost:3000`, l'API sur `http://localhost:4000`. `GET /api/health` est le contrôle de
+santé public. À ce stade, aucun parcours de commande réel n'est activé.
 
-## Supported Platforms
+### API disponible
 
-| Agent                                                         | Status                     |
-| ------------------------------------------------------------- | -------------------------- |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | **Recommended** — Opus 5.5 |
-| [Codex CLI](https://github.com/openai/codex)                  | Supported                  |
-| [OpenCode](https://opencode.ai/)                              | Supported                  |
-| [Cursor](https://cursor.com/)                                 | Supported                  |
+| Route | Rôle |
+|---|---|
+| `GET /api/health` | Contrôle de santé (non journalisé, non mis en cache) |
+| `GET /api/catalogue/categories` | Catégories visibles avec nombre de produits publiés |
+| `GET /api/catalogue/products` | Liste filtrée : `q`, `category`, `univers`, `size`, `brand`, `condition`, `minPriceCents`, `maxPriceCents`, `inStock`, `sort` (`featured`, `price_asc`, `price_desc`, `newest`), `page` |
+| `GET /api/catalogue/products/:slug` | Fiche produit publiée, variantes actives uniquement |
+| `GET /api/catalogue/home` | Produits phares, nouveautés et catégories |
+| `GET /api/catalogue/sitemap` | Slugs publics pour le plan du site |
 
-## Prerequisites
+Seuls les produits `ACTIVE` d'une catégorie visible sont exposés. Le stock exact n'est donné qu'à partir de 3 unités ou moins
+(`LOW_STOCK`) ; au-delà, seule la disponibilité est renvoyée. Comme l'import crée des brouillons, le catalogue public reste vide
+tant qu'aucun produit n'a été publié avec un prix sourcé.
 
-- [Node.js](https://nodejs.org/) 24+
-- An AI coding agent (see [Supported Platforms](#supported-platforms))
+## Commandes utiles
 
-## Tech Stack
+| Besoin | Commande |
+|---|---|
+| Développement web + API | `npm run dev` |
+| Web seul / API seule | `npm run dev:web` / `npm run dev:api` |
+| Base PostgreSQL locale | `npm run db:up` |
+| Migration locale / migration déployée | `npm run db:migrate` / `npm run db:deploy` |
+| Catégories et administrateur initial optionnel | `npm run db:seed` |
+| Vérifier le catalogue fourni sans écriture | `npm run import:catalogue -- --dry-run` |
+| Appliquer le catalogue dans la base configurée | `npm run import:catalogue -- --apply` |
+| Optimiser les photos sources | `npm run images:optimize` |
+| Lint, types, tests et builds | `npm run check` |
 
-- **Next.js 16** — App Router, React 19, TypeScript strict
-- **shadcn/ui** — Base UI primitives + Tailwind CSS v4
-- **Tailwind CSS v4** — oklch design tokens
-- **Lucide React** — default icons (replaced by extracted SVGs during cloning)
+Les tests d'intégration de l'API utilisent `TEST_DATABASE_URL` (base `pcc_test` du conteneur). Le nom de la base doit finir par
+`_test` : elle est vidée à chaque exécution. Sans cette variable, ces tests sont ignorés.
 
-## How It Works
+`npm run db:up` ne supprime ni ne réinitialise le volume Docker. Le mot de passe n'est pas fourni dans le dépôt. La base de test
+est créée une seule fois à l'initialisation du volume.
 
-The `/clone-website` skill follows four steps:
+L'import lit `data/catalogue.json` et `data/catalogue-complement.csv` (ou `CATALOGUE_DIR`). Le CSV contient une ligne par
+variante et doit fournir le prix en centimes, l'URL et la date de vérification du prix ; le stock initial est facultatif.
+Les chemins d'images doivent pointer vers des fichiers existants sous `apps/web/public`. L'import crée toujours les produits en
+brouillon et les variantes inactives. Le mode par défaut est une simulation sans écriture ; aucune donnée de démonstration n'est
+transformée en prix ou en stock vérifié.
 
-1. **Map** — map source URLs to local routes and preserve existing work.
-2. **Observe** — inspect desktop/mobile pages, extract real assets and fonts, and exercise alternate states.
-3. **Build** — implement editable components and working interactions; delegate independent sections when useful.
-4. **Compare** — review source and local pages at matched sizes/states, repair visible differences, and run the production check.
+## Configuration et données manquantes
 
-Framer pages and animated sites have focused inspection guidance for responsive variants, media, sticky scenes, and scroll/time-driven motion. Direct HTTP or asset tools handle extraction where practical; browser comparisons establish appearance and behavior. Deliverables include route mappings, run instructions, comparison screenshots, and any remaining gaps.
+`.env.example` ne contient aucun secret. `.env.local`, les identifiants Railway et les clés Cloudflare R2 ne doivent jamais être
+commités. En production, l'API refuse de démarrer sans base PostgreSQL, origines web, secret proxy et deux secrets JWT distincts
+d'au moins 32 caractères.
 
-## Use Cases
+Avant de publier la boutique, renseignez dans les gestionnaires de secrets et fichiers de catalogue adaptés : domaine, raison
+sociale et mentions obligatoires, coordonnées de contact, références et prix avec leurs sources datées, stocks, zones et tarifs de
+livraison, conditions de vente, compte bancaire SEPA, fournisseur d'e-mail et secrets R2. Ne réutilisez pas les prix `[DÉMO]`.
 
-- **Platform migration** — rebuild a site you own from WordPress/Webflow/Squarespace into a modern Next.js codebase
-- **Lost source code** — your site is live but the repo is gone, the developer left, or the stack is legacy. Get the code back in a modern format
-- **Learning** — deconstruct how production sites achieve specific layouts, animations, and responsive behavior by working with real code
-
-## Not Intended For
-
-- **Phishing or impersonation** — this project must not be used for deceptive purposes, impersonation, or any activity that breaks the law.
-- **Passing off someone's design as your own** — logos, brand assets, and original copy belong to their owners.
-- **Violating terms of service** — some sites explicitly prohibit scraping or reproduction. Check first.
-
-## Project Structure
-
-```
-src/
-  app/              # Next.js routes
-  components/       # React components
-    ui/             # shadcn/ui primitives
-    sites/<site>/   # Source-specific components and extracted SVGs
-  lib/utils.ts      # cn() utility
-  types/            # TypeScript interfaces
-  hooks/            # Custom React hooks
-public/
-  sites/<site>/     # Source-specific images, fonts, videos, and other assets
-docs/
-  research/<site>/  # Page brief, asset map, and inspection evidence
-  design-references/ # Screenshots
-.agents/skills/
-  clone-website/    # Canonical skill and inspection reference
-.claude/commands/
-  clone-website.md  # Thin Claude Code bridge
-AGENTS.md           # Agent instructions (single source of truth)
-CLAUDE.md           # Claude Code config (imports AGENTS.md)
-```
-
-## Commands
-
-```bash
-npm run dev    # Start dev server
-npm run build  # Production build
-npm run lint   # ESLint check
-npm run typecheck # TypeScript check
-npm run check  # Run lint + typecheck + build
-```
-
-### If using docker
-
-```bash
-docker compose up app --build # build and run the app
-docker compose up dev --build # run the app in dev mode on port 3001
-```
-
-## Agent Support
-
-The project keeps one portable Agent Skill at `.agents/skills/clone-website/`. Codex, Cursor, and OpenCode read it directly. Claude Code uses the small command bridge at `.claude/commands/clone-website.md` so `/clone-website` and its arguments continue to work without exposing a duplicate skill to the other agents.
-
-## Star History
-
-![Star History Chart](docs/assets/star-history.png)
-
-## License
-
-MIT
+Voir [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md) pour les prérequis Vercel, Railway et Cloudflare R2. Aucun déploiement n'est
+déclenché par les commandes locales.

@@ -3,18 +3,19 @@ node_modules/
 .pnp
 .pnp.js
 
-# Build
+# Build output
 .next/
+**/.next/
 out/
 build/
 dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
 
-# Environment
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Local environment and secrets
+.env*
+!.env.example
 
 # Debug
 npm-debug.log*
@@ -31,17 +32,11 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
 # Vercel
 .vercel
 
-# Local settings (not project config)
+# Local settings
 .claude/settings.local.json
-
-# User-specific skills (not part of the template)
 .claude/skills/customize/
 .claude/skills/release/
 
