@@ -51,6 +51,18 @@ santé public. À ce stade, aucun parcours de commande réel n'est activé.
 | `GET /api/catalogue/products/:slug` | Fiche produit publiée, variantes actives uniquement |
 | `GET /api/catalogue/home` | Produits phares, nouveautés et catégories |
 | `GET /api/catalogue/sitemap` | Slugs publics pour le plan du site |
+| `POST /api/auth/register` · `login` · `refresh` · `logout` | Comptes clients : argon2id, verrouillage 15 min après 5 échecs, réponses identiques (aucune énumération de comptes) |
+| `GET /api/auth/me` | Profil de la session en cours |
+| `POST /api/auth/password/forgot` · `password/reset` | Lien de réinitialisation valable 1 h, 3 par compte et par heure, à usage unique ; ferme les sessions ouvertes |
+| `GET /api/cart` · `POST /api/cart/items` · `PATCH`/`DELETE /api/cart/items/:variantId` | Panier invité (cookie opaque) ou du compte, 10 unités max par ligne, anomalies de stock signalées |
+
+Sessions : JWT d'accès de 15 min dans `pcc_at` (httpOnly, SameSite=Lax) et refresh token opaque de 30 jours dans `pcc_rt`
+(httpOnly, SameSite=Strict, limité à `/api/auth`). Le refresh token change à chaque utilisation ; réutiliser un ancien jeton
+révoque toute la famille de sessions. Seules les empreintes HMAC des jetons opaques sont stockées. À la connexion, le panier
+invité rejoint celui du compte. Toute écriture exige l'en-tête `x-pcc-csrf: 1` et une origine listée dans `WEB_ORIGIN`.
+
+Les e-mails de réinitialisation sont mis en file (`EmailMessage`) mais **pas encore envoyés** : le worker d'e-mails est la
+prochaine phase.
 
 Seuls les produits `ACTIVE` d'une catégorie visible sont exposés. Le stock exact n'est donné qu'à partir de 3 unités ou moins
 (`LOW_STOCK`) ; au-delà, seule la disponibilité est renvoyée. Comme l'import crée des brouillons, le catalogue public reste vide

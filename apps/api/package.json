@@ -14,7 +14,7 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "dotenv -v DATABASE_URL=postgresql://validate@localhost:5432/validate -- prisma validate",
     "import:catalogue": "node --env-file-if-exists=../../.env.local dist/scripts/import-catalogue.js",
-    "test": "npm run build && node --env-file-if-exists=../../.env.local --test test/*.test.mjs"
+    "test": "npm run build && node --env-file-if-exists=../../.env.local --test --test-concurrency=1 test/*.test.mjs"
   },
   "dependencies": {
     "@pcc/shared": "1.0.0",

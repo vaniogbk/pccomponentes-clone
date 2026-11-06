@@ -1,5 +1,15 @@
 export const MAX_QUANTITY_PER_LINE = 10;
 
+/** Anomalies d'une ligne de panier, communes à l'API et au site (le site traduit le code). */
+export const CART_ISSUES = {
+  VARIANT_UNAVAILABLE: "Cet article n'est plus disponible.",
+  OUT_OF_STOCK: 'Cet article est en rupture de stock.',
+  INSUFFICIENT_STOCK: 'La quantité demandée dépasse le stock disponible.',
+  QUANTITY_LIMIT: `La quantité est limitée à ${MAX_QUANTITY_PER_LINE} par article.`,
+} as const;
+
+export type CartIssueCode = keyof typeof CART_ISSUES;
+
 export interface CartLineInput {
   variantId: string;
   quantity: number;

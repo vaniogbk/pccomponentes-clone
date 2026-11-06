@@ -1,8 +1,10 @@
+import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
 
 const emptyToUndefined = (value: unknown) => value === '' ? undefined : value;
 const optionalSecret = z.preprocess(emptyToUndefined, z.string().min(32).optional());
 const optionalUrl = z.preprocess(emptyToUndefined, z.string().url().optional());
+const optionalBoolean = z.preprocess(emptyToUndefined, z.enum(['true', 'false']).transform((value) => value === 'true').optional());
 
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -14,6 +16,9 @@ const environmentSchema = z.object({
   PROXY_SECRET: optionalSecret,
   JWT_ACCESS_SECRET: optionalSecret,
   JWT_REFRESH_SECRET: optionalSecret,
+  ACCESS_TOKEN_TTL_SECONDS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(60).max(3600).default(900)),
+  REFRESH_TOKEN_TTL_DAYS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(90).default(30)),
+  COOKIE_SECURE: optionalBoolean,
 });
 
 export type AppConfig = {
@@ -24,6 +29,13 @@ export type AppConfig = {
   webOrigins: string[];
   publicSiteUrl?: string;
   proxySecret?: string;
+  /** Signature des JWT d'accès. */
+  jwtAccessSecret: string;
+  /** Empreinte HMAC des jetons opaques (refresh, panier, réinitialisation). */
+  jwtRefreshSecret: string;
+  accessTokenTtlSeconds: number;
+  refreshTokenTtlDays: number;
+  cookieSecure: boolean;
 };
 
 export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -56,11 +68,15 @@ export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     if (missingKeys.length > 0) {
       throw new Error(`Configuration de production incomplète : ${missingKeys.join(', ')}.`);
     }
-
-    if (values.JWT_ACCESS_SECRET === values.JWT_REFRESH_SECRET) {
-      throw new Error('JWT_ACCESS_SECRET et JWT_REFRESH_SECRET doivent être différents.');
-    }
   }
+
+  if (values.JWT_ACCESS_SECRET && values.JWT_ACCESS_SECRET === values.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET et JWT_REFRESH_SECRET doivent être différents.');
+  }
+
+  // Hors production, des secrets éphémères permettent de démarrer sans configuration : les sessions
+  // sont simplement perdues au redémarrage.
+  const ephemeral = () => randomBytes(48).toString('base64url');
 
   return {
     nodeEnv: values.NODE_ENV,
@@ -70,5 +86,10 @@ export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     ...(values.PUBLIC_SITE_URL && { publicSiteUrl: values.PUBLIC_SITE_URL }),
     ...(values.PROXY_SECRET && { proxySecret: values.PROXY_SECRET }),
     webOrigins,
+    jwtAccessSecret: values.JWT_ACCESS_SECRET ?? ephemeral(),
+    jwtRefreshSecret: values.JWT_REFRESH_SECRET ?? ephemeral(),
+    accessTokenTtlSeconds: values.ACCESS_TOKEN_TTL_SECONDS,
+    refreshTokenTtlDays: values.REFRESH_TOKEN_TTL_DAYS,
+    cookieSecure: values.COOKIE_SECURE ?? values.NODE_ENV === 'production',
   };
 }

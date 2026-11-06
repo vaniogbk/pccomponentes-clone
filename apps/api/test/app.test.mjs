@@ -9,6 +9,11 @@ const config = {
   trustProxy: false,
   webOrigins: ['http://localhost:3000'],
   proxySecret: 'proxy-secret-for-tests-that-is-at-least-32',
+  jwtAccessSecret: 'access-secret-for-tests-that-is-long-enough',
+  jwtRefreshSecret: 'refresh-secret-for-tests-that-is-long-enough',
+  accessTokenTtlSeconds: 900,
+  refreshTokenTtlDays: 30,
+  cookieSecure: false,
 };
 
 test('health is public, unlogged, and explicitly non-cacheable', async (context) => {

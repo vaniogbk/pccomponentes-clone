@@ -23,8 +23,9 @@ encore manquantes.
 - Vérifier le contrôle de santé `/api/health` et appliquer les migrations avant d'ouvrir le service au web.
 - Configurer `TRUST_PROXY=true` uniquement si Railway termine TLS en amont et que la configuration du proxy est maîtrisée.
 
-L'API expose le point de santé et le catalogue public en lecture (`/api/catalogue/*`) ; les routes d'authentification, panier,
-commande et administration restent à construire.
+L'API expose le point de santé, le catalogue public en lecture (`/api/catalogue/*`), l'authentification client (`/api/auth/*`)
+et le panier (`/api/cart/*`). L'envoi des e-mails, la commande, le stockage des justificatifs et l'administration restent à
+construire.
 
 ## Vercel — storefront
 

@@ -1,20 +1,7 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
 import test, { after, before } from 'node:test';
-import { fileURLToPath } from 'node:url';
-import { PrismaClient } from '@prisma/client';
-import { createApp } from '../dist/app.js';
+import { migrateTestDatabase, resetDatabase, skipDatabase as skip, startServer, stopServer } from './helpers.mjs';
 
-const databaseUrl = process.env.TEST_DATABASE_URL;
-const databaseName = databaseUrl ? new URL(databaseUrl).pathname.slice(1) : '';
-const skip = !databaseUrl
-  ? 'TEST_DATABASE_URL non défini : tests catalogue ignorés.'
-  : !databaseName.endsWith('_test')
-    ? `Refus : « ${databaseName} » n'est pas une base de test (suffixe _test requis).`
-    : false;
-
-const apiDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let prisma;
 let server;
 let baseUrl;
@@ -22,13 +9,6 @@ let baseUrl;
 async function get(path) {
   const response = await fetch(`${baseUrl}${path}`);
   return { status: response.status, headers: response.headers, body: await response.json() };
-}
-
-async function resetDatabase() {
-  const tables = await prisma.$queryRaw`
-    SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
-  const list = tables.map(({ tablename }) => `"public"."${tablename}"`).join(', ');
-  if (list) await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
 
 async function createProduct({ reference, slug, name, brand, categoryId, univers, status = 'ACTIVE', isFeatured = false, variants }) {
@@ -62,14 +42,8 @@ async function createProduct({ reference, slug, name, brand, categoryId, univers
 before(async () => {
   if (skip) return;
 
-  execFileSync(process.execPath, [resolve(apiDirectory, '../../node_modules/prisma/build/index.js'), 'migrate', 'deploy'], {
-    cwd: apiDirectory,
-    env: { ...process.env, DATABASE_URL: databaseUrl },
-    stdio: 'ignore',
-  });
-
-  prisma = new PrismaClient({ datasourceUrl: databaseUrl });
-  await resetDatabase();
+  prisma = migrateTestDatabase();
+  await resetDatabase(prisma);
 
   const gpu = await prisma.category.create({ data: { slug: 'cartes-graphiques', name: 'Cartes Graphiques', univers: 'CARTES_GRAPHIQUES', isVisible: true, position: 1 } });
   const consoles = await prisma.category.create({ data: { slug: 'consoles', name: 'Consoles', univers: 'CONSOLES', isVisible: true, position: 2 } });
@@ -108,18 +82,15 @@ before(async () => {
     variants: [{ sku: 'TST-005-U', sizeId: unique.id, priceCents: 1000, stock: 5 }],
   });
 
-  server = createApp(
-    { nodeEnv: 'test', port: 0, trustProxy: false, webOrigins: ['http://localhost:3000'] },
-    { prisma },
-  ).listen(0);
-  await new Promise((done) => server.once('listening', done));
-  baseUrl = `http://127.0.0.1:${server.address().port}/api/catalogue`;
+  const started = await startServer(prisma);
+  server = started.server;
+  baseUrl = `${started.baseUrl}/api/catalogue`;
 });
 
 after(async () => {
-  if (server) await new Promise((done) => server.close(done));
+  await stopServer(server);
   if (prisma) {
-    await resetDatabase();
+    await resetDatabase(prisma);
     await prisma.$disconnect();
   }
 });

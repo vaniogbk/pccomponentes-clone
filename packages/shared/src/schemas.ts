@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { MAX_QUANTITY_PER_LINE } from './cart.js';
 import { EUROPEAN_COUNTRY_CODES } from './countries.js';
+import { DEFAULT_LOCALE, SITE_LOCALES } from './locales.js';
 
 export const UNIVERS = [
   'CARTES_GRAPHIQUES',
@@ -58,22 +60,46 @@ export const addressSchema = z.object({
   phone: z.string().trim().max(32),
 });
 
+const emailSchema = z.string().trim().email().max(254).transform((email) => email.toLowerCase());
+const localeSchema = z.enum(SITE_LOCALES).catch(DEFAULT_LOCALE).default(DEFAULT_LOCALE);
+export const PASSWORD_MIN_LENGTH = 12;
+const newPasswordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(128);
+
 export const registrationSchema = z.object({
-  email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
-  password: z.string().min(12).max(128),
+  email: emailSchema,
+  password: newPasswordSchema,
   firstName: z.string().trim().min(1).max(100),
   lastName: z.string().trim().min(1).max(100),
-  locale: z.string().length(2).default('fr'),
+  locale: localeSchema,
+});
+
+export const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1).max(128),
+});
+
+export const passwordForgotSchema = z.object({
+  email: emailSchema,
+  locale: localeSchema,
+});
+
+export const passwordResetSchema = z.object({
+  token: z.string().min(20).max(200),
+  password: newPasswordSchema,
 });
 
 export const cartLineSchema = z.object({
   variantId: z.string().min(1).max(100),
-  quantity: z.number().int().min(1).max(10),
+  quantity: z.number().int().min(1).max(MAX_QUANTITY_PER_LINE),
+});
+
+export const cartQuantitySchema = z.object({
+  quantity: z.number().int().min(1).max(MAX_QUANTITY_PER_LINE),
 });
 
 export const checkoutSchema = z.object({
   address: addressSchema,
   shippingRateId: z.string().min(1).max(100),
   acceptedTerms: z.literal(true),
-  locale: z.string().length(2).default('fr'),
+  locale: localeSchema,
 });

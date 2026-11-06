@@ -1,5 +1,6 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import express, { type ErrorRequestHandler, type NextFunction, type Request, type Response } from 'express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import pino from 'pino';
@@ -8,8 +9,13 @@ import type { PrismaClient } from '@prisma/client';
 import type { AppConfig } from './config/env.js';
 import { AppError } from './lib/errors.js';
 import { getPrisma } from './lib/prisma.js';
+import { optionalAuth } from './middleware/auth.js';
 import { createCatalogueRepository } from './repositories/catalogue.js';
+import { authRouter } from './routes/auth.js';
+import { cartRouter } from './routes/cart.js';
 import { catalogueRouter } from './routes/catalogue.js';
+import { createAuthService } from './services/auth.js';
+import { createCartService } from './services/cart.js';
 
 export interface AppDependencies {
   prisma?: PrismaClient;
@@ -108,6 +114,8 @@ export function createApp(config: AppConfig, dependencies: AppDependencies = {})
   }));
 
   app.use(express.json({ limit: '100kb' }));
+  app.use(cookieParser());
+  app.use(optionalAuth(config));
 
   app.use((request, response, next) => {
     if (!WRITING_METHODS.has(request.method)) {
@@ -139,7 +147,10 @@ export function createApp(config: AppConfig, dependencies: AppDependencies = {})
     response.status(200).json({ status: 'ok' });
   });
 
+  const cartService = createCartService(prisma, config);
   app.use('/api/catalogue', catalogueRouter(createCatalogueRepository(prisma)));
+  app.use('/api/auth', authRouter(config, createAuthService(prisma, config), cartService));
+  app.use('/api/cart', cartRouter(config, cartService));
 
   app.use('/api', (_request, response) => {
     response.status(404).json({ error: 'NOT_FOUND' });
