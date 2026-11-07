@@ -19,6 +19,8 @@ import { createCartService } from './services/cart.js';
 
 export interface AppDependencies {
   prisma?: PrismaClient;
+  /** File d'e-mails à réveiller après une mise en file (le worker tourne dans le processus du serveur). */
+  emailQueue?: { kick(): void };
 }
 
 const SAFE_REQUEST_ID = /^[A-Za-z0-9._-]{1,100}$/;
@@ -149,7 +151,7 @@ export function createApp(config: AppConfig, dependencies: AppDependencies = {})
 
   const cartService = createCartService(prisma, config);
   app.use('/api/catalogue', catalogueRouter(createCatalogueRepository(prisma)));
-  app.use('/api/auth', authRouter(config, createAuthService(prisma, config), cartService));
+  app.use('/api/auth', authRouter(config, createAuthService(prisma, config, { onEmailQueued: () => dependencies.emailQueue?.kick() }), cartService));
   app.use('/api/cart', cartRouter(config, cartService));
 
   app.use('/api', (_request, response) => {

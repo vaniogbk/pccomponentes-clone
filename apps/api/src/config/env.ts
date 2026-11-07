@@ -19,6 +19,12 @@ const environmentSchema = z.object({
   ACCESS_TOKEN_TTL_SECONDS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(60).max(3600).default(900)),
   REFRESH_TOKEN_TTL_DAYS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(90).default(30)),
   COOKIE_SECURE: optionalBoolean,
+  EMAIL_PROVIDER: z.preprocess(emptyToUndefined, z.enum(['console', 'brevo']).default('console')),
+  BREVO_API_KEY: z.preprocess(emptyToUndefined, z.string().min(10).optional()),
+  EMAIL_FROM: z.preprocess(emptyToUndefined, z.string().email().optional()),
+  EMAIL_FROM_NAME: z.preprocess(emptyToUndefined, z.string().max(100).optional()),
+  EMAIL_MAX_ATTEMPTS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(10).default(5)),
+  EMAIL_WORKER_INTERVAL_MS: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1000).max(3_600_000).default(30_000)),
 });
 
 export type AppConfig = {
@@ -36,6 +42,15 @@ export type AppConfig = {
   accessTokenTtlSeconds: number;
   refreshTokenTtlDays: number;
   cookieSecure: boolean;
+  email: {
+    provider: 'console' | 'brevo';
+    brevoApiKey?: string;
+    fromEmail?: string;
+    /** Nom de l'expéditeur, aussi affiché en tête des e-mails. */
+    fromName: string;
+    maxAttempts: number;
+    workerIntervalMs: number;
+  };
 };
 
 export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -70,6 +85,10 @@ export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     }
   }
 
+  if (values.EMAIL_PROVIDER === 'brevo' && (!values.BREVO_API_KEY || !values.EMAIL_FROM)) {
+    throw new Error('EMAIL_PROVIDER=brevo exige BREVO_API_KEY et EMAIL_FROM.');
+  }
+
   if (values.JWT_ACCESS_SECRET && values.JWT_ACCESS_SECRET === values.JWT_REFRESH_SECRET) {
     throw new Error('JWT_ACCESS_SECRET et JWT_REFRESH_SECRET doivent être différents.');
   }
@@ -91,5 +110,13 @@ export function readConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     accessTokenTtlSeconds: values.ACCESS_TOKEN_TTL_SECONDS,
     refreshTokenTtlDays: values.REFRESH_TOKEN_TTL_DAYS,
     cookieSecure: values.COOKIE_SECURE ?? values.NODE_ENV === 'production',
+    email: {
+      provider: values.EMAIL_PROVIDER,
+      ...(values.BREVO_API_KEY && { brevoApiKey: values.BREVO_API_KEY }),
+      ...(values.EMAIL_FROM && { fromEmail: values.EMAIL_FROM }),
+      fromName: values.EMAIL_FROM_NAME ?? 'La boutique',
+      maxAttempts: values.EMAIL_MAX_ATTEMPTS,
+      workerIntervalMs: values.EMAIL_WORKER_INTERVAL_MS,
+    },
   };
 }

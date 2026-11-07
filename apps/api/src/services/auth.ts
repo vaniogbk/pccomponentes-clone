@@ -30,7 +30,12 @@ export interface IssuedSession {
   user: PublicUser;
 }
 
-export function createAuthService(prisma: PrismaClient, config: AppConfig) {
+export interface AuthServiceHooks {
+  /** Appelé après la validation d'une transaction qui a mis un e-mail en file. */
+  onEmailQueued?: () => void;
+}
+
+export function createAuthService(prisma: PrismaClient, config: AppConfig, hooks: AuthServiceHooks = {}) {
   let dummyHash: Promise<string> | undefined;
   /** Vérification factice : un e-mail inconnu prend le même temps qu'un mot de passe faux. */
   const burnPasswordCheck = async (password: string) => {
@@ -170,16 +175,18 @@ export function createAuthService(prisma: PrismaClient, config: AppConfig) {
         prisma.passwordResetToken.create({
           data: { userId: user.id, tokenHash: hash(token), expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS) },
         }),
-        // Mis en file d'envoi : le worker d'e-mails (phase suivante) l'enverra.
+        // Mis en file dans la même transaction : le worker d'e-mails l'envoie ensuite.
         prisma.emailMessage.create({
           data: {
             toAddress: user.email,
             subject: 'Réinitialisation de votre mot de passe',
             template: 'password-reset',
             payload: { locale, firstName: user.firstName, resetUrl: resetUrl.toString(), expiresInMinutes: RESET_TOKEN_TTL_MS / 60_000 },
+            maxAttempts: config.email.maxAttempts,
           },
         }),
       ]);
+      hooks.onEmailQueued?.();
     },
 
     async resetPassword(token: string, password: string) {
