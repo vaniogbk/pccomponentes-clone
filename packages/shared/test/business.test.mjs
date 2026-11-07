@@ -198,3 +198,14 @@ test('locales and European country labels are explicit', () => {
   assert.equal(countryName('FR', 'fr'), 'France');
   assert.ok(EUROPEAN_COUNTRY_CODES.includes('FR'));
 });
+
+test('legal notice lists every value the publisher still has to provide', async () => {
+  const { LEGAL_NOTICE, missingLegalFields } = await import('../dist/legal.js');
+  const missing = missingLegalFields();
+  assert.ok(missing.includes('publisher.companyName'));
+  assert.ok(missing.includes('host.name'));
+  assert.ok(missing.includes('consumerMediator.name'));
+  const filled = structuredClone(LEGAL_NOTICE);
+  filled.host = { name: 'Hébergeur', address: 'Adresse', phone: '+33 1 00 00 00 00' };
+  assert.ok(!missingLegalFields(filled).some((field) => field.startsWith('host.')));
+});

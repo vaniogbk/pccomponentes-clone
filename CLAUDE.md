@@ -10,6 +10,8 @@ partagées dans `packages/shared`.
 - Valider toute entrée API avec Zod. Ne jamais journaliser de cookie, jeton, mot de passe, adresse e-mail, IBAN ni corps de requête.
 - Les données du catalogue, les prix, stocks, délais, coordonnées et conditions actuels sont des données de démonstration : ne pas
   les publier comme faits sans source client vérifiable.
+- Ne jamais supprimer la page « Mentions légales » (`apps/web/src/app/mentions-legales`) : elle est obligatoire. Ses valeurs
+  viennent de l'éditeur (`packages/shared/src/legal.ts`), jamais devinées ni recopiées d'un autre site.
 - Ne jamais ajouter de secret, de véritable IBAN ou de donnée personnelle au dépôt. R2 reste privé pour les justificatifs.
 - Les commandes de carte et de virement restent désactivées tant que les fournisseurs et comptes ne sont pas configurés.
 - Consulter les guides installés sous `node_modules/next/dist/docs/` avant tout changement Next.js. Pour Next.js 16, utiliser

@@ -56,7 +56,7 @@ export const Footer: React.FC = () => {
         <div>
           <h4 className="text-white font-bold uppercase tracking-wider mb-3">Informations Légales</h4>
           <ul className="space-y-2">
-            <li><span className="text-slate-400">Informations juridiques à fournir par la boutique</span></li>
+            <li><Link href="/mentions-legales" className="hover:text-white">Mentions légales</Link></li>
             <li><span className="text-slate-500">Paiement par carte bancaire (bientôt disponible)</span></li>
           </ul>
         </div>

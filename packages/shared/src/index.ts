@@ -1,6 +1,7 @@
 export * from './cart.js';
 export * from './contact.js';
 export * from './countries.js';
+export * from './legal.js';
 export * from './locales.js';
 export * from './money.js';
 export * from './order.js';
