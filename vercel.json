@@ -1,0 +1,7 @@
+{
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build --workspace=@pcc/shared && npm run build --workspace=@pcc/web",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs",
+  "regions": ["fra1"]
+}
